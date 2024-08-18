@@ -1,0 +1,6 @@
+@AbcRest_Final_HostAddress = http://localhost:5214
+
+GET {{AbcRest_Final_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
