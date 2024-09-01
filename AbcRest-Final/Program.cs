@@ -1,46 +1,82 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using AbcRest_Final.Database_Context;  // Includes the namespace where ApplicationDbContext is defined
-using Microsoft.EntityFrameworkCore;  // Includes the EF Core namespace for database operations
+using AbcRest_Final.Database_Context;
+using AbcRest_Final.Interface;
+using AbcRest_Final.Service;
+using AbcRest_Final.Model;  // Ensure to include if any model-specific configurations are needed
 
-var builder = WebApplication.CreateBuilder(args);  // Initializes a builder for the web application with command line arguments
+var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();  // Adds MVC controllers to the application's services
+builder.Services.AddControllers();
+builder.Services.AddRazorPages();
 
 // Configure Entity Framework and the database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));  // Configures the application to use a SQL Server database with connection string from app settings
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure CORS
+// Register the generic repository for all entities
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+// Register the booking service
+builder.Services.AddScoped<IBookingService, BookingService>();
+
+// Configure CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.WithOrigins("http://localhost:4200")  // Specify the client application origin
-                          .AllowAnyHeader()
-                          .AllowAnyMethod());
+        policy => policy.WithOrigins("http://localhost:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();  // Adds API exploration services to support Swagger/OpenAPI
-builder.Services.AddSwaggerGen();  // Adds Swagger generator services to produce Swagger documentation for the API
+// Add Swagger to the application for API documentation
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-var app = builder.Build();  // Builds the web application ready to start accepting requests
+// Optionally add Health Checks (if needed)
+builder.Services.AddHealthChecks();
+
+// Optionally add Memory Caching (if needed)
+builder.Services.AddMemoryCache();
+
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();  // Enables Swagger when the application is in development environment
-    app.UseSwaggerUI();  // Enables Swagger UI in development environment
+    app.UseDeveloperExceptionPage();  // Use developer exception page to see detailed errors
+    app.UseSwagger();                 // Enable Swagger for API documentation
+    app.UseSwaggerUI();               // Enable Swagger UI for easy testing
 }
 
-app.UseHttpsRedirection();  // Redirects HTTP requests to HTTPS
+// Automatically apply database migrations and seed data (if needed)
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();  // Automatically apply migrations
+    // Seed data if necessary
+    // SeedData.Initialize(dbContext); 
+}
 
-app.UseCors("AllowSpecificOrigin");  // Apply the CORS policy globally
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseCors("AllowSpecificOrigin"); // Apply CORS policy globally
 
-app.UseAuthorization();  // Adds Authorization middleware to the request pipeline to secure the app
+// Optionally use health checks
+app.UseHealthChecks("/health");
 
-app.MapControllers();  // Maps attribute-routed controllers to the app
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();   // Maps attribute-routed controllers to the app
+    endpoints.MapRazorPages();    // Maps Razor Pages endpoints
+    // Optionally map health checks endpoint
+    endpoints.MapHealthChecks("/health");
+});
 
 app.Run();  // Runs the application

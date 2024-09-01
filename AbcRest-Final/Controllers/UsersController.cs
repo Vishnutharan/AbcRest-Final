@@ -15,7 +15,7 @@ namespace AbcRest_Final.Controllers
         private readonly ApplicationDbContext _context;
 
         // Constructor to inject the database context
-        public AuthController(ApplicationDbContext context)
+        public AuthController(ApplicationDbContext context) // constructure will first initiate first 
         {
             _context = context;
         }
@@ -31,7 +31,7 @@ namespace AbcRest_Final.Controllers
             }
 
             // Retrieve users with null handling for optional fields
-            var users = await _context.Users.Select(user => new
+            var users = await _context.Users.Select(user => new     // user => new { ... } this is lambda expression.
             {
                 id = user.id,
                 FirstName = user.FirstName ?? "Default FirstName", // Default value if null
@@ -56,7 +56,7 @@ namespace AbcRest_Final.Controllers
 
             // Check user credentials
             var user = await _context.Users
-                                     .FirstOrDefaultAsync(u => u.UserName == loginDto.UserName && u.Password == loginDto.Password);
+                                     .FirstOrDefaultAsync(u => u.UserName == loginDto.UserName && u.Password == loginDto.Password); // we check the db user table has the same value username and password
 
             if (user == null)
             {

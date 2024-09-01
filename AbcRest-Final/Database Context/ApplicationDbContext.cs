@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AbcRest_Final.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace AbcRest_Final.Database_Context
 {
@@ -14,5 +15,7 @@ namespace AbcRest_Final.Database_Context
         // DbSet property representing the Users table in the database
         // Each DbSet corresponds to a table in the database, and each entity corresponds to a row in the table
         public DbSet<User> Users { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
     }
 }
