@@ -1,20 +1,21 @@
 ﻿using AbcRest_Final.Model;
 using AbcRest_Final.Service;
 using Microsoft.AspNetCore.Mvc;
-
-
+using System.Threading.Tasks;
 
 namespace AbcRest_Final.Controllers
 {
-    [ApiController]  // Explicit declaration as an API Controller
-    [Route("api/[controller]")]  // Routing path for API
-    public class BookingController : ControllerBase  // Use ControllerBase for API controllers
+    [ApiController]
+    [Route("api/[controller]")]
+    public class BookingController : ControllerBase
     {
         private readonly IBookingService _bookingService;
+        private readonly EmailService _emailService;
 
-        public BookingController(IBookingService bookingService)
+        public BookingController(IBookingService bookingService, EmailService emailService)
         {
             _bookingService = bookingService;
+            _emailService = emailService;
         }
 
         // GET: api/Booking
@@ -22,7 +23,7 @@ namespace AbcRest_Final.Controllers
         public async Task<IActionResult> GetAllBookings()
         {
             var bookings = await _bookingService.GetAllBookingsAsync();
-            return Ok(bookings);  // Return all bookings as JSON
+            return Ok(bookings);
         }
 
         // GET: api/Booking/{id}
@@ -30,7 +31,7 @@ namespace AbcRest_Final.Controllers
         public async Task<IActionResult> GetBookingById(int id)
         {
             var booking = await _bookingService.GetBookingByIdAsync(id);
-            return booking == null ? NotFound() : Ok(booking);  // Return a single booking or Not Found
+            return booking == null ? NotFound() : Ok(booking);
         }
 
         // POST: api/Booking
@@ -39,13 +40,28 @@ namespace AbcRest_Final.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);  // Return bad request if model state is invalid
+                return BadRequest(ModelState);
             }
 
             await _bookingService.AddBookingAsync(booking);
-            return CreatedAtAction(nameof(GetBookingById), new { id = booking.Id }, booking);  // Return the created booking
-        }
 
+            // Send notification email after booking is successfully added
+            var emailSubject = "Booking Confirmation";
+            var emailBody = $"Dear {booking.Name},\n\n" +
+                            $"Thank you for your booking! Here are your booking details:\n\n" +
+                            $"Booking ID: {booking.Id}\n" +
+                            $"Name: {booking.Name}\n" +
+                            $"Number of Persons: {booking.Persons}\n" +
+                            $"Date: {booking.Date.ToShortDateString()}\n" +
+                            $"Time: {booking.Time}\n\n" +
+                            $"We look forward to serving you!\n\n" +
+                            $"Best regards,\n" +
+                            $"Your Company Name";
+
+            await _emailService.SendBookingNotificationAsync(booking.Email, emailSubject, emailBody);
+
+            return CreatedAtAction(nameof(GetBookingById), new { id = booking.Id }, booking);
+        }
 
         // PUT: api/Booking/{id}
         [HttpPut("{id}")]
@@ -67,13 +83,9 @@ namespace AbcRest_Final.Controllers
                 return NotFound();
             }
 
-            // Update the booking
             await _bookingService.UpdateBookingAsync(booking);
-            return NoContent();  // Return no content after a successful update
+            return NoContent();
         }
-
-
-
 
         // DELETE: api/Booking/{id}
         [HttpDelete("{id}")]
@@ -86,7 +98,7 @@ namespace AbcRest_Final.Controllers
             }
 
             await _bookingService.DeleteBookingAsync(id);
-            return NoContent();  // Return no content after a successful deletion
+            return NoContent();
         }
     }
 }

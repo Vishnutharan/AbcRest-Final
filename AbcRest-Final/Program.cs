@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using AbcRest_Final.Database_Context;
 using AbcRest_Final.Interface;
 using AbcRest_Final.Service;
-using AbcRest_Final.Model;  // Ensure to include if any model-specific configurations are needed
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +19,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register the generic repository for all entities
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
-// Register the booking service
+// Register the BookingService and EmailService
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<EmailService>();
 
 // Configure CORS policy
 builder.Services.AddCors(options =>
